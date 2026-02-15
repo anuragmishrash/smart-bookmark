@@ -70,7 +70,7 @@ export default function DashboardShell({
   /* ─── Supabase Realtime subscription (cross‑tab sync) ─── */
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
-    addLog("Initializing subscription...", "info");
+    addLog(`Initializing subscription for user ${user.id}`, "info");
 
     // Use a unique channel per user to prevent collisions
     const channel = supabase
@@ -84,9 +84,17 @@ export default function DashboardShell({
           // We rely on RLS. If this fails silently, logs will stay empty.
         },
         (payload) => {
-          console.log("[Realtime] INSERT received", payload.new);
-          addLog(`INSERT received: ${payload.new.title}`, "success");
+          console.log("[Realtime] INSERT received", payload);
+          addLog(`INSERT raw payload received`, "info");
+
+          if (!payload.new) {
+            addLog("INSERT payload missing.new property", "error");
+            return;
+          }
+
           const newBookmark = payload.new as Bookmark;
+          addLog(`INSERT: ${newBookmark.title} (${newBookmark.id})`, "success");
+
           setBookmarks((current) =>
             current.some((b) => b.id === newBookmark.id)
               ? current
@@ -103,7 +111,7 @@ export default function DashboardShell({
         },
         (payload) => {
           console.log("[Realtime] UPDATE received", payload.new);
-          addLog(`UPDATE received: ${payload.new.title}`, "success");
+          addLog(`UPDATE: ${payload.new?.title || 'Unknown'}`, "success");
           const updated = payload.new as Bookmark;
           setBookmarks((current) =>
             current.map((b) => (b.id === updated.id ? updated : b)),
@@ -119,7 +127,7 @@ export default function DashboardShell({
         },
         (payload) => {
           console.log("[Realtime] DELETE received", payload.old);
-          addLog("DELETE received", "success");
+          addLog(`DELETE: ${payload.old?.id || 'Unknown'}`, "success");
           const oldBookmark = payload.old as { id: string };
           setBookmarks((current) =>
             current.filter((b) => b.id !== oldBookmark.id),
@@ -131,7 +139,7 @@ export default function DashboardShell({
         setStatus(status);
 
         if (status === "SUBSCRIBED") {
-          addLog("Subscribed to channel", "success");
+          addLog(`Subscribed to bookmarks-realtime-${user.id.slice(0, 8)}...`, "success");
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || err) {
           console.error("[Realtime] Subscription error:", err);
