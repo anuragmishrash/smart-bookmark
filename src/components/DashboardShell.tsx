@@ -48,15 +48,18 @@ export default function DashboardShell({
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
 
+    // Use a unique channel per user to prevent collisions
     const channel = supabase
-      .channel("bookmarks-realtime")
+      .channel(`bookmarks-realtime-${user.id}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "bookmarks",
-          filter: `user_id=eq.${user.id}`,
+          // We remove the explicit 'filter' and rely on Row Level Security (RLS)
+          // to ensure we only receive events for our own user_id.
+          // This is often more robust in production than constructing filter strings.
         },
         (payload) => {
           console.log("[Realtime] INSERT received", payload.new);
@@ -74,7 +77,6 @@ export default function DashboardShell({
           event: "UPDATE",
           schema: "public",
           table: "bookmarks",
-          filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
           console.log("[Realtime] UPDATE received", payload.new);
@@ -101,8 +103,12 @@ export default function DashboardShell({
       )
       .subscribe((status, err) => {
         console.log("[Realtime] Subscription status:", status);
-        if (err) {
+        if (status === "SUBSCRIBED") {
+          // Optional: toast.success("Connected to realtime sync");
+        }
+        if (status === "CHANNEL_ERROR" || err) {
           console.error("[Realtime] Subscription error:", err);
+          toast.error("Realtime sync disconnected. Refresh to reconnect.");
         }
       });
 
