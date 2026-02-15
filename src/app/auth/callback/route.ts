@@ -5,7 +5,12 @@ import { createServerClient } from "@supabase/ssr";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  // Ensure we use the detected origin or fall back to a sensible default (crucial for Vercel/proxies)
   const origin = requestUrl.origin;
+  const next = requestUrl.searchParams.get("next") || "/dashboard";
+
+  console.log(`[Auth Callback] Processing request for ${request.url}`);
+  console.log(`[Auth Callback] Code present: ${!!code}`);
 
   if (code) {
     const cookieStore = await cookies();
@@ -32,11 +37,26 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      return NextResponse.redirect(`${origin}/dashboard`);
+      console.log(`[Auth Callback] Session exchange successful for user: ${data.user?.id}`);
+      const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
+      const isLocalEnv = process.env.NODE_ENV === "development";
+
+      if (isLocalEnv) {
+        // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
+        return NextResponse.redirect(`${origin}${next}`);
+      } else if (forwardedHost) {
+        return NextResponse.redirect(`https://${forwardedHost}${next}`);
+      } else {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+    } else {
+      console.error("[Auth Callback] Session exchange error:", error);
     }
+  } else {
+    console.warn("[Auth Callback] No code found in query params.");
   }
 
   // Return the user to an error page with some instructions
