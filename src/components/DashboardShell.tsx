@@ -7,6 +7,7 @@ import type { User } from "@supabase/supabase-js";
 import Sidebar from "@/components/Sidebar";
 import AddBookmark from "@/components/AddBookmark";
 import BookmarkCard from "@/components/BookmarkCard";
+import RealtimeDebug from "@/components/RealtimeDebug";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Sparkles, FolderOpenDot } from "lucide-react";
 import toast from "react-hot-toast";
@@ -17,6 +18,12 @@ type DashboardShellProps = {
   initialError?: string;
 };
 
+type DebugLog = {
+  time: string;
+  message: string;
+  type: "info" | "success" | "error";
+};
+
 export default function DashboardShell({
   user,
   initialBookmarks,
@@ -24,10 +31,24 @@ export default function DashboardShell({
 }: DashboardShellProps) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks);
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("CONNECTING");
+  const [logs, setLogs] = useState<DebugLog[]>([]);
+
+  const addLog = (message: string, type: DebugLog["type"] = "info") => {
+    setLogs((prev) => [
+      {
+        time: new Date().toLocaleTimeString().split(" ")[0], // HH:MM:SS
+        message,
+        type,
+      },
+      ...prev.slice(0, 49),
+    ]);
+  };
 
   useEffect(() => {
     if (initialError) {
       toast.error(initialError);
+      addLog(`Initial Error: ${initialError}`, "error");
     }
   }, [initialError]);
 
@@ -38,15 +59,18 @@ export default function DashboardShell({
         ? current
         : [bookmark, ...current],
     );
+    addLog(`Optimistic add: ${bookmark.title}`, "info");
   }, []);
 
   const handleOptimisticDelete = useCallback((bookmarkId: string) => {
     setBookmarks((current) => current.filter((b) => b.id !== bookmarkId));
+    addLog(`Optimistic delete: ${bookmarkId}`, "info");
   }, []);
 
   /* ─── Supabase Realtime subscription (cross‑tab sync) ─── */
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
+    addLog("Initializing subscription...", "info");
 
     // Use a unique channel per user to prevent collisions
     const channel = supabase
@@ -57,12 +81,11 @@ export default function DashboardShell({
           event: "INSERT",
           schema: "public",
           table: "bookmarks",
-          // We remove the explicit 'filter' and rely on Row Level Security (RLS)
-          // to ensure we only receive events for our own user_id.
-          // This is often more robust in production than constructing filter strings.
+          // We rely on RLS. If this fails silently, logs will stay empty.
         },
         (payload) => {
           console.log("[Realtime] INSERT received", payload.new);
+          addLog(`INSERT received: ${payload.new.title}`, "success");
           const newBookmark = payload.new as Bookmark;
           setBookmarks((current) =>
             current.some((b) => b.id === newBookmark.id)
@@ -80,6 +103,7 @@ export default function DashboardShell({
         },
         (payload) => {
           console.log("[Realtime] UPDATE received", payload.new);
+          addLog(`UPDATE received: ${payload.new.title}`, "success");
           const updated = payload.new as Bookmark;
           setBookmarks((current) =>
             current.map((b) => (b.id === updated.id ? updated : b)),
@@ -95,6 +119,7 @@ export default function DashboardShell({
         },
         (payload) => {
           console.log("[Realtime] DELETE received", payload.old);
+          addLog("DELETE received", "success");
           const oldBookmark = payload.old as { id: string };
           setBookmarks((current) =>
             current.filter((b) => b.id !== oldBookmark.id),
@@ -103,12 +128,16 @@ export default function DashboardShell({
       )
       .subscribe((status, err) => {
         console.log("[Realtime] Subscription status:", status);
+        setStatus(status);
+
         if (status === "SUBSCRIBED") {
-          // Optional: toast.success("Connected to realtime sync");
+          addLog("Subscribed to channel", "success");
         }
-        if (status === "CHANNEL_ERROR" || err) {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || err) {
           console.error("[Realtime] Subscription error:", err);
-          toast.error("Realtime sync disconnected. Refresh to reconnect.");
+          const msg = err?.message || "Unknown error";
+          addLog(`Subscription Error: ${status} - ${msg}`, "error");
+          toast.error(`Sync disconnected: ${status}`);
         }
       });
 
@@ -186,6 +215,9 @@ export default function DashboardShell({
           </section>
         </main>
       </div>
+
+      {/* Debug Overlay */}
+      <RealtimeDebug status={status} logs={logs} />
     </div>
   );
 }
@@ -234,3 +266,4 @@ function NoSearchResults() {
     </motion.div>
   );
 }
+
