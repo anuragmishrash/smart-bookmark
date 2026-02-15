@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
+  let response = NextResponse.next({
+    request: req,
   });
 
   const supabase = createServerClient(
@@ -13,45 +11,49 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value;
+        getAll() {
+          return req.cookies.getAll();
         },
-        set(name: string, value: string, options) {
-          res.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options) {
-          res.cookies.delete({ name, ...options });
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            req.cookies.set(name, value),
+          );
+          response = NextResponse.next({
+            request: req,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
         },
       },
     },
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { pathname } = req.nextUrl;
   const isAuthRoute = pathname === "/" || pathname === "/login";
   const isDashboardRoute = pathname.startsWith("/dashboard");
 
-  if (!session && isDashboardRoute) {
+  if (!user && isDashboardRoute) {
     const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = "/";
-    redirectUrl.searchParams.set("redirectedFrom", pathname);
+    redirectUrl.pathname = "/login";
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (session && isAuthRoute) {
+  if (user && isAuthRoute) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
-    redirectUrl.searchParams.delete("redirectedFrom");
     return NextResponse.redirect(redirectUrl);
   }
 
-  return res;
+  return response;
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|auth/callback).*)",
+  ],
 };
-
