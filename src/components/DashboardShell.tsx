@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import type { Bookmark } from "@/lib/types";
-import type { User } from "@supabase/supabase-js";
+import type { User, RealtimeChannel } from "@supabase/supabase-js";
 import Sidebar from "@/components/Sidebar";
 import AddBookmark from "@/components/AddBookmark";
 import BookmarkCard from "@/components/BookmarkCard";
@@ -34,6 +34,9 @@ export default function DashboardShell({
   const [status, setStatus] = useState("CONNECTING");
   const [logs, setLogs] = useState<DebugLog[]>([]);
 
+  // Ref to hold the active channel for broadcasting
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
   const addLog = (message: string, type: DebugLog["type"] = "info") => {
     setLogs((prev) => [
       {
@@ -60,6 +63,23 @@ export default function DashboardShell({
         : [bookmark, ...current],
     );
     addLog(`Optimistic add: ${bookmark.title}`, "info");
+
+    // Broadcast the new bookmark to other clients immediately
+    // This bypasses DB latency and RLS filtering delays
+    if (channelRef.current) {
+      channelRef.current
+        .send({
+          type: "broadcast",
+          event: "INSERT",
+          payload: bookmark,
+        })
+        .then(() => {
+          addLog(`Broadcast sent: ${bookmark.title}`, "info");
+        })
+        .catch((err) => {
+          addLog(`Broadcast failed: ${err.message}`, "error");
+        });
+    }
   }, []);
 
   const handleOptimisticDelete = useCallback((bookmarkId: string) => {
@@ -74,7 +94,28 @@ export default function DashboardShell({
 
     // Use a unique channel per user to prevent collisions
     const channel = supabase
-      .channel(`bookmarks-realtime-${user.id}`)
+      .channel(`bookmarks-realtime-${user.id}`, {
+        config: {
+          broadcast: { self: false },
+        },
+      })
+      .on(
+        "broadcast",
+        { event: "INSERT" },
+        (payload) => {
+          console.log("[Realtime] CAST received", payload);
+          addLog("Broadcast INSERT received", "success");
+
+          const newBookmark = payload.payload as Bookmark;
+          if (newBookmark?.id) {
+            setBookmarks((current) =>
+              current.some((b) => b.id === newBookmark.id)
+                ? current
+                : [newBookmark, ...current],
+            );
+          }
+        }
+      )
       .on(
         "postgres_changes",
         {
@@ -85,15 +126,14 @@ export default function DashboardShell({
         },
         (payload) => {
           console.log("[Realtime] INSERT received", payload);
-          addLog(`INSERT raw payload received`, "info");
 
           if (!payload.new) {
-            addLog("INSERT payload missing.new property", "error");
+            // Ignore incomplete payloads
             return;
           }
 
           const newBookmark = payload.new as Bookmark;
-          addLog(`INSERT: ${newBookmark.title} (${newBookmark.id})`, "success");
+          addLog(`DB INSERT received: ${newBookmark.title}`, "success");
 
           setBookmarks((current) =>
             current.some((b) => b.id === newBookmark.id)
@@ -140,6 +180,7 @@ export default function DashboardShell({
 
         if (status === "SUBSCRIBED") {
           addLog(`Subscribed to bookmarks-realtime-${user.id.slice(0, 8)}...`, "success");
+          channelRef.current = channel;
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || err) {
           console.error("[Realtime] Subscription error:", err);
@@ -151,6 +192,7 @@ export default function DashboardShell({
 
     return () => {
       supabase.removeChannel(channel);
+      channelRef.current = null;
     };
   }, [user.id]);
 
@@ -274,4 +316,3 @@ function NoSearchResults() {
     </motion.div>
   );
 }
-
