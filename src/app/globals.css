@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #020617;
+}
+
+html {
+  min-height: 100%;
+}
+
+html.dark {
+  --background: #020617;
+  --foreground: #e5e7eb;
 }
 
 @theme inline {
@@ -12,15 +21,335 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: radial-gradient(circle at top left, #e2e8f0, #f8fafc 55%);
+  color: #020617;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+html.dark body {
+  background: radial-gradient(circle at top left, #1e293b, #020617 55%);
+  color: #e5e7eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DARK MODE — component utility classes (untouched)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.glass-panel {
+  @apply bg-slate-900/60 border border-slate-700/70 shadow-xl shadow-black/40 backdrop-blur-xl;
+}
+
+.glass-input {
+  @apply bg-slate-900/60 border border-slate-700/70 focus:border-sky-500/80 focus:ring-2 focus:ring-sky-500/40 backdrop-blur-xl placeholder:text-slate-500;
+}
+
+.pill-button {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200;
+}
+
+.pill-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 bg-sky-500 text-slate-950 hover:bg-sky-400 active:bg-sky-500/90 shadow-lg shadow-sky-500/25;
+}
+
+.pill-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 bg-slate-900/40 text-slate-200 hover:bg-slate-800/80 border border-slate-700/80;
+}
+
+.card-hover {
+  @apply transition-all duration-200 hover:-translate-y-1 hover:border-sky-500/60 hover:shadow-xl hover:shadow-sky-500/25;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE — Premium SaaS Redesign
+   Inspired by Linear, Stripe, Vercel
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Page background: subtle cool gradient ── */
+html:not(.dark) body {
+  background: linear-gradient(160deg, #f0f4f8 0%, #f8fafc 40%, #eef2ff 100%);
+  color: #0f172a;
+}
+
+/* ── Typography: strong hierarchy, no gray-on-gray ── */
+html:not(.dark) .text-slate-50,
+html:not(.dark) .text-slate-100 {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .text-slate-200,
+html:not(.dark) .text-slate-300 {
+  color: #1e293b !important;
+}
+
+html:not(.dark) .text-slate-400 {
+  color: #475569 !important;
+}
+
+html:not(.dark) .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* ── Accent colors — stronger, more saturated in light ── */
+html:not(.dark) .text-sky-400,
+html:not(.dark) .text-sky-300\/90 {
+  color: #2563eb !important;
+}
+
+html:not(.dark) .text-sky-200 {
+  color: #1d4ed8 !important;
+}
+
+html:not(.dark) .text-sky-300 {
+  color: #2563eb !important;
+}
+
+html:not(.dark) .text-amber-300 {
+  color: #d97706 !important;
+}
+
+html:not(.dark) .text-red-300 {
+  color: #dc2626 !important;
+}
+
+/* ── Placeholders ── */
+html:not(.dark) input::placeholder,
+html:not(.dark) .placeholder\:text-slate-500::placeholder,
+html:not(.dark) .placeholder\:text-slate-400::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* ── Glass Panel → clean white elevated card ── */
+html:not(.dark) .glass-panel {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+  backdrop-filter: none !important;
+}
+
+/* ── Backgrounds: white surfaces, light tinted containers ── */
+html:not(.dark) .bg-slate-800,
+html:not(.dark) .bg-slate-800\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+html:not(.dark) .bg-slate-900\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+html:not(.dark) .bg-slate-900\/60,
+html:not(.dark) .bg-slate-900\/70 {
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) .bg-slate-900\/40 {
+  background-color: #f8fafc !important;
+}
+
+html:not(.dark) .bg-slate-950\/60 {
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) .bg-slate-700 {
+  background-color: #e2e8f0 !important;
+}
+
+/* ── Borders: visible but refined ── */
+html:not(.dark) .border-slate-700\/70,
+html:not(.dark) .border-slate-700\/80,
+html:not(.dark) .border-slate-700,
+html:not(.dark) .border-slate-800\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .border-slate-800 {
+  border-color: #e2e8f0 !important;
+}
+
+/* ── Shadows: soft, realistic depth ── */
+html:not(.dark) .shadow-black\/40,
+html:not(.dark) .shadow-black\/50 {
+  --tw-shadow-color: transparent !important;
+  --tw-shadow: none !important;
+}
+
+html:not(.dark) .shadow-inner {
+  --tw-shadow: inset 0 1px 2px 0 rgb(0 0 0 / 0.04) !important;
+}
+
+html:not(.dark) .shadow-xl {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+html:not(.dark) .shadow-2xl {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ── Glass Input → crisp white input with clear border ── */
+html:not(.dark) .glass-input {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  backdrop-filter: none !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) .glass-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+}
+
+html:not(.dark) .glass-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* ── Primary Button → strong blue, eye-catching ── */
+html:not(.dark) .pill-primary {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(37, 99, 235, 0.2) !important;
+  border: none !important;
+}
+
+html:not(.dark) .pill-primary:hover {
+  background: #1d4ed8 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06), 0 6px 16px rgba(37, 99, 235, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+html:not(.dark) .pill-primary:active {
+  background: #1e40af !important;
+  transform: translateY(0);
+}
+
+/* ── Ghost Button → subtle border, clear interaction ── */
+html:not(.dark) .pill-ghost {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html:not(.dark) .pill-ghost:hover {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* ── Card Hover → premium lift with blue tint shadow ── */
+html:not(.dark) .card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html:not(.dark) .card-hover:hover {
+  transform: translateY(-2px) !important;
+  border-color: #bfdbfe !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ── Hover overrides ── */
+html:not(.dark) .hover\:bg-slate-800:hover,
+html:not(.dark) .hover\:bg-slate-700:hover {
+  background-color: #f1f5f9 !important;
+}
+
+html:not(.dark) .hover\:text-slate-50:hover {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .hover\:text-red-300:hover {
+  color: #dc2626 !important;
+}
+
+html:not(.dark) .hover\:bg-red-500\/10:hover {
+  background-color: rgb(254 226 226 / 0.6) !important;
+}
+
+html:not(.dark) .hover\:text-sky-200:hover {
+  color: #1d4ed8 !important;
+}
+
+/* ── Gradient overrides: use solid blue instead of gradient in light ── */
+html:not(.dark) .shadow-sky-500\/40 {
+  --tw-shadow-color: rgba(37, 99, 235, 0.15) !important;
+  --tw-shadow: var(--tw-shadow-colored) !important;
+}
+
+html:not(.dark) .shadow-sky-500\/25 {
+  --tw-shadow-color: transparent !important;
+  --tw-shadow: none !important;
+}
+
+html:not(.dark) .shadow-sky-500\/20 {
+  --tw-shadow-color: transparent !important;
+  --tw-shadow: none !important;
+}
+
+/* ── Backdrop blur: not needed in light mode ── */
+html:not(.dark) .backdrop-blur-xl,
+html:not(.dark) .backdrop-blur-2xl {
+  backdrop-filter: none !important;
+}
+
+/* ── Scrollbar for light mode ── */
+html:not(.dark) ::-webkit-scrollbar {
+  width: 6px;
+}
+
+html:not(.dark) ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ── Focus ring: consistent blue ring ── */
+html:not(.dark) .focus\:ring-sky-500\/40:focus {
+  --tw-ring-color: rgba(59, 130, 246, 0.12) !important;
+}
+
+html:not(.dark) .focus\:border-sky-500\/80:focus {
+  border-color: #3b82f6 !important;
+}
+
+/* ── Login page gradients: softer in light ── */
+html:not(.dark) .from-sky-500\/20 {
+  --tw-gradient-from: rgba(37, 99, 235, 0.06) !important;
+}
+
+html:not(.dark) .to-purple-500\/10 {
+  --tw-gradient-to: rgba(139, 92, 246, 0.04) !important;
+}
+
+html:not(.dark) .from-white\/5 {
+  --tw-gradient-from: transparent !important;
+}
+
+html:not(.dark) .to-sky-500\/10 {
+  --tw-gradient-to: rgba(37, 99, 235, 0.03) !important;
+}
+
+/* ── Badge overrides for login page ── */
+html:not(.dark) .border-sky-500\/40 {
+  border-color: rgba(37, 99, 235, 0.2) !important;
+}
+
+html:not(.dark) .bg-sky-500\/10 {
+  background-color: rgba(37, 99, 235, 0.06) !important;
+}
+
+html:not(.dark) .text-sky-100 {
+  color: #1e40af !important;
+}
+
+/* ── Empty state and dashed border ── */
+html:not(.dark) .border-dashed {
+  border-color: #cbd5e1 !important;
 }
